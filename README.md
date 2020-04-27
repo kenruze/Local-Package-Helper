@@ -9,7 +9,7 @@ Use the Unity Package Manager to add a new package from a Github URL. Use the UR
     https://github.com/kenruze/Local-Package-Helper
 
 ##### Unity 2017.2 or later:
-Edit _package.json_ in the "Packages" folder of your Unity project. Add an entry into the _dependencies_ section using the package name from the _package.json_ file in this repo, and the URL of this project:
+Edit _manifest.json_ in the "Packages" folder of your Unity project. Add an entry into the _dependencies_ section using the package name from the _package.json_ file in this repo, and the URL of this project:
 
     "com.moletotem.localpackagehelper": "https://github.com/kenruze/Local-Package-Helper.git",
 
