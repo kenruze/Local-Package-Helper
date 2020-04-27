@@ -1,0 +1,12 @@
+{
+    "name": "com.moletotem.localpackagehelper",
+    "version": "1.0.0",
+    "displayName": "Local Package Helper",
+    "description": "A tool window to show and install available local packages and for creating new local packages.",
+    "unity": "2017.2",
+    "author": {
+        "name": "Elliott Davis",
+        "email": "contact@elliottdavis.games",
+        "url": "https://www.elliottdavis.games"
+    }
+}
