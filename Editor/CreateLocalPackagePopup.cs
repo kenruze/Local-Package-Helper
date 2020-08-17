@@ -11,10 +11,10 @@ public class CreateLocalPackagePopup : EditorWindow
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
         window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 300);
-        window.ShowModalUtility();
         window.localPackageFolderDestination = destination;
         window.packageComName = "com." + developerName + "." + packageName.Replace(" ", "").ToLower();
         window.SetNames(packageName);
+        window.ShowModalUtility();
     }
 
     void SetNames(string folderName)
