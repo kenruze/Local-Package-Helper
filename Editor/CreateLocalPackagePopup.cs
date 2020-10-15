@@ -150,7 +150,7 @@ public class CreateLocalPackagePopup : EditorWindow
             "Refresh package list in Local Package Helper window to install");
             Close();
         }
-        if (GUILayout.Button("Cancel"))
+        else if (GUILayout.Button("Cancel"))
         {
             Close();
         }

@@ -435,11 +435,11 @@ public class LocalPackageHelper : EditorWindow
         while (addedDependency)
         {
             addedDependency = false;
-            foreach (var package in selectedDependencyPackages)
+            for (int i = 0; i < selectedDependencyPackages.Count; i++)
             {
-                if (package.dependencies != null)
+                if (selectedDependencyPackages[i].dependencies != null)
                 {
-                    foreach (var name in package.dependencies.Keys)
+                    foreach (var name in selectedDependencyPackages[i].dependencies.Keys)
                     {
                         var dependency = localPackages.Where(x => x.name == name).FirstOrDefault();
                         if (dependency != null)
