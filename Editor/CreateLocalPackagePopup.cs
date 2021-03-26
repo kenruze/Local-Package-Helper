@@ -10,7 +10,7 @@ public class CreateLocalPackagePopup : EditorWindow
     {
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
-        window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 300);
+        window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 321);
         window.localPackageFolderDestination = destination;
         window.localPackageRootFolders = localPackageRootFolders;
         window.localPackageRootFolderLabels = new string[localPackageRootFolders.Length];
@@ -40,10 +40,12 @@ public class CreateLocalPackagePopup : EditorWindow
     }
     string[] localPackageRootFolders;
     string[] localPackageRootFolderLabels;
+    string[] versionDropdownOptions = new string[] { "1.0.0", "0.0.1" };
 
     public string localPackageFolderDestination;
     public string folderName;
     public string packageComName;
+    public string packageVersion = "1.0.0";
     public string packageDisplayName;
     [Tooltip("this is allowed to be uppercase, but without spaces")]
     public string packageAssemblyName;
@@ -81,6 +83,17 @@ public class CreateLocalPackagePopup : EditorWindow
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(packageDisplayName)), true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(packageAssemblyName)), true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(packageDescription)), true);
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(packageVersion)), true);
+        int chosenVersionDropdownIndex = -1;
+        chosenVersionDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenVersionDropdownIndex, versionDropdownOptions, GUILayout.Width(20));
+        if (chosenVersionDropdownIndex != -1)
+        {
+            Debug.Log("chose " + localPackageRootFolders[chosenVersionDropdownIndex]);
+            serializedObject.FindProperty(nameof(packageVersion)).stringValue = versionDropdownOptions[chosenVersionDropdownIndex];
+            chosenVersionDropdownIndex = -1;
+        }
+        EditorGUILayout.EndHorizontal();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(minimumUnityVersion)), true);
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(authorSection)), true);
         if (authorSection)
@@ -110,7 +123,7 @@ public class CreateLocalPackagePopup : EditorWindow
                 string packageJson =
 @"{
     ""name"": """ + packageComName + @""",
-    ""version"": ""1.0.0"",
+    ""version"": """ + packageVersion + @""",
     ""displayName"": """ + packageDisplayName + @""",
     ""description"": """ + packageDescription + @""",
     ""unity"": """ + minimumUnityVersion + @"""" + (authorSection ? "," : "") + @"
