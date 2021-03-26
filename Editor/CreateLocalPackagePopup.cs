@@ -11,7 +11,7 @@ public class CreateLocalPackagePopup : EditorWindow
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
         window.titleContent = new GUIContent("Create New Local Package");
-        window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 321);
+        window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 342);
         window.localPackageFolderDestination = destination;
         window.localPackageRootFolders = localPackageRootFolders;
         window.localPackageRootFolderLabels = new string[localPackageRootFolders.Length];
@@ -57,6 +57,7 @@ public class CreateLocalPackagePopup : EditorWindow
     public string authorEmail;
     public string authorUrl;
     public bool editorAssemblyFolder = true;
+    public bool installPackageAfterCreated = true;
 
     void OnGUI()
     {
@@ -104,6 +105,7 @@ public class CreateLocalPackagePopup : EditorWindow
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(authorUrl)), true);
         }
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(editorAssemblyFolder)), true);
+        EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(installPackageAfterCreated)), true);
 
         if (GUILayout.Button("Create Package"))
         {
@@ -180,6 +182,14 @@ public class CreateLocalPackagePopup : EditorWindow
             }
             Debug.Log("Saved package \"" + folderName + "\" to " + localPackageFolderDestination + "/" + folderName + "\n" +
             "Refresh package list in Local Package Helper window to install");
+            if (installPackageAfterCreated)
+            {
+                LocalPackageHelper.CreatedNewPackage(new string[] { packageComName });
+            }
+            else
+            {
+                LocalPackageHelper.CreatedNewPackage(null);
+            }
             Close();
         }
         else if (GUILayout.Button("Cancel"))

@@ -590,6 +590,46 @@ public class LocalPackageHelper : EditorWindow
         }
     }
 
+    // refresh the list of packages after creating a new package
+    // if install after creating was checked, also install the new package
+    // packages to install are passed as a list
+    public static void CreatedNewPackage(string[] installPackages)
+    {
+        var localPackageHelper = GetWindow<LocalPackageHelper>();
+        if (installPackages != null && installPackages.Length > 0)
+        {
+            if (addPackages != null)
+            {
+                Debug.Log("already had packages queued to install, may need to install new package manually");
+            }
+            else
+            {
+                addPackages = new List<string>();
+                foreach (var item in installPackages)
+                {
+                    Debug.Log("queue new package: " + item);
+                    addPackages.Add(item);
+                }
+            }
+        }
+        else
+        {
+            Debug.Log("refresh package list after creating a new package");
+        }
+        localPackages = localPackageHelper.GetPackageInfoForLocalPackageFolders();
+        if (ListRequest == null)
+        {
+            ListRequest = Client.List(true);
+            EditorApplication.update += PollInstalledPackagesProgress;
+        }
+        else
+        {
+            Debug.Log("polling already in progress, may need to install manually");
+        }
+        // when refreshing local packages completes, the queued packages will be installed
+        // AddNextPackageFromQueue();
+    }
+
     // Add a package to the Project
     static void AddNextPackageFromQueue()
     {
