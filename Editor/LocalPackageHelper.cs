@@ -389,7 +389,7 @@ public class LocalPackageHelper : EditorWindow
                 {
                     localPackageFolder = localPackageRootFolders[0];
                 }
-                CreateLocalPackagePopup.Init(localPackageFolder);
+                CreateLocalPackagePopup.Init(localPackageFolder, localPackageRootFolders.ToArray());
             }
         }
         EditorGUILayout.EndScrollView();

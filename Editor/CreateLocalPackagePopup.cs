@@ -6,15 +6,21 @@ using UnityEditor;
 
 public class CreateLocalPackagePopup : EditorWindow
 {
-    public static void Init(string destination, string packageName = "New Package", string developerName = "developer")
+    public static void Init(string destination, string[] localPackageRootFolders = null, string packageName = "New Package", string developerName = "developer")
     {
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
         window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 300);
         window.localPackageFolderDestination = destination;
+        window.localPackageRootFolders = localPackageRootFolders;
+        window.localPackageRootFolderLabels = new string[localPackageRootFolders.Length];
+        for (int i = 0; i < localPackageRootFolders.Length; i++)
+        {
+            window.localPackageRootFolderLabels[i] = localPackageRootFolders[i].Replace('/', '>');
+        }
         window.packageComName = "com." + developerName + "." + packageName.Replace(" ", "").ToLower();
         window.SetNames(packageName);
-        window.ShowModalUtility();
+        window.ShowUtility();
     }
 
     void SetNames(string folderName)
@@ -32,6 +38,8 @@ public class CreateLocalPackagePopup : EditorWindow
         packageDisplayName = folderName;
         packageAssemblyName = folderName.Replace(" ", "");
     }
+    string[] localPackageRootFolders;
+    string[] localPackageRootFolderLabels;
 
     public string localPackageFolderDestination;
     public string folderName;
@@ -50,7 +58,17 @@ public class CreateLocalPackagePopup : EditorWindow
     void OnGUI()
     {
         SerializedObject serializedObject = new SerializedObject(this);
+        EditorGUILayout.BeginHorizontal();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(localPackageFolderDestination)), true);
+        int chosenFolderDropdownIndex = -1;
+        chosenFolderDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenFolderDropdownIndex, localPackageRootFolderLabels, GUILayout.Width(20));
+        if (chosenFolderDropdownIndex != -1)
+        {
+            Debug.Log("chose " + localPackageRootFolders[chosenFolderDropdownIndex]);
+            serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue = localPackageRootFolders[chosenFolderDropdownIndex];
+            chosenFolderDropdownIndex = -1;
+        }
+        EditorGUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(folderName)), true);
         if (GUILayout.Button("Update names", GUILayout.Width(100)))
@@ -146,7 +164,7 @@ public class CreateLocalPackagePopup : EditorWindow
                 Directory.SetCurrentDirectory(currentDirectory);
                 //Debug.Log(logEntry);
             }
-            Debug.Log("Saved package \""+folderName+"\" to "+localPackageFolderDestination+"/"+folderName+"\n"+
+            Debug.Log("Saved package \"" + folderName + "\" to " + localPackageFolderDestination + "/" + folderName + "\n" +
             "Refresh package list in Local Package Helper window to install");
             Close();
         }
