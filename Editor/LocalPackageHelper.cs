@@ -341,7 +341,10 @@ public class LocalPackageHelper : EditorWindow
                     addPackages = new List<string>();
                     for (int i = selectedDependencyPackages.Count - 1; i >= 0; --i)
                     {
-                        addPackages.Add(selectedDependencyPackages[i].name);
+                        if (!installedPackages.Contains(selectedDependencyPackages[i].name))
+                        {
+                            addPackages.Add(selectedDependencyPackages[i].name);
+                        }
                     }
                     foreach (var item in selectedPackages)
                     {
