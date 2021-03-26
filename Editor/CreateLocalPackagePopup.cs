@@ -10,6 +10,7 @@ public class CreateLocalPackagePopup : EditorWindow
     {
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
+        window.titleContent = new GUIContent("Create New Local Package");
         window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 321);
         window.localPackageFolderDestination = destination;
         window.localPackageRootFolders = localPackageRootFolders;
@@ -66,7 +67,7 @@ public class CreateLocalPackagePopup : EditorWindow
         chosenFolderDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenFolderDropdownIndex, localPackageRootFolderLabels, GUILayout.Width(20));
         if (chosenFolderDropdownIndex != -1)
         {
-            Debug.Log("chose " + localPackageRootFolders[chosenFolderDropdownIndex]);
+            // Debug.Log("chose " + localPackageRootFolders[chosenFolderDropdownIndex]);
             serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue = localPackageRootFolders[chosenFolderDropdownIndex];
             chosenFolderDropdownIndex = -1;
         }
@@ -89,7 +90,7 @@ public class CreateLocalPackagePopup : EditorWindow
         chosenVersionDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenVersionDropdownIndex, versionDropdownOptions, GUILayout.Width(20));
         if (chosenVersionDropdownIndex != -1)
         {
-            Debug.Log("chose " + localPackageRootFolders[chosenVersionDropdownIndex]);
+            // Debug.Log("chose " + localPackageRootFolders[chosenVersionDropdownIndex]);
             serializedObject.FindProperty(nameof(packageVersion)).stringValue = versionDropdownOptions[chosenVersionDropdownIndex];
             chosenVersionDropdownIndex = -1;
         }
