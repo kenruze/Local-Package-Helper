@@ -123,30 +123,11 @@ public class LocalPackageHelper : EditorWindow
             {
                 if (GUILayout.Button(options[i], EditorStyles.toolbarButton))
                 {
-                    Debug.Log("chose " + options[i] + " i guess this doesn't work, but it looks nice");
-                    string path = options[i];
-
-                    // no response
-                    // EditorUtility.RevealInFinder(path);
-
-                    // no response
-                    // bool openInsidesOfFolder = false;
-                    // string macPath = path.Replace("\\", "/"); // mac finder doesn't like backward slashes
-                    // if (Directory.Exists(macPath)) // if path requested is a folder, automatically open insides of that folder
-                    // {
-                    //     openInsidesOfFolder = true;
-                    // }
-                    // if (!macPath.StartsWith("\""))
-                    // {
-                    //     macPath = "\"" + macPath;
-                    // }
-                    // if (!macPath.EndsWith("\""))
-                    // {
-                    //     macPath = macPath + "\"";
-                    // }
-                    // string arguments = (openInsidesOfFolder ? "" : "-R ") + macPath;
-                    // System.Diagnostics.Process.Start("open", arguments);
-
+                    Debug.Log("chose " + options[i]);
+                    // the leading slash is necessary for mac paths.
+                    // TODO: check if adding the slash interferes with function on other platforms
+                    string path = "/" + options[i];
+                    EditorUtility.RevealInFinder(path);
                     editorWindow.Close();
                 }
             }
@@ -233,83 +214,102 @@ public class LocalPackageHelper : EditorWindow
             {
                 selectingForInstall = true;
             }
-            for (int p = 0; p < localPackagesFoldouts.Length; p++)
+            if (localPackages != null && ListRequest == null)
             {
-                if (localPackagesFoldouts[p] = EditorGUILayout.Foldout(localPackagesFoldouts[p], localPackageRootFolders[p], true))
+                for (int p = 0; p < localPackagesFoldouts.Length; p++)
                 {
-                    for (int i = 0; i < localPackages.Count; i++)
+                    if (localPackagesFoldouts[p] = EditorGUILayout.Foldout(localPackagesFoldouts[p], localPackageRootFolders[p], true))
                     {
-                        if (localPackages[i].rootFolderIndex == p)
+                        var localPackagesDirectory = localPackageRootFolders[p];
+                        localPackagesDirectory = "/" + localPackagesDirectory;
+                        if (Directory.Exists(localPackagesDirectory))
                         {
-                            bool installed = false;
-                            if (installedPackages != null)
+                            int packagesInFolder = 0;
+                            for (int i = 0; i < localPackages.Count; i++)
                             {
-                                installed = installedPackages.Contains(localPackages[i].name);
-                            }
-                            bool selected = selectedPackages.Contains(localPackages[i]);
-                            bool dependencySelected = selectedDependencyPackages.Contains(localPackages[i]);
-                            if (selectedPackages.Count > 0)
-                            {
-                                GUI.enabled = GUI.enabled && (installed != selectingForInstall);
-                            }
-                            Color prevColour = GUI.color;
-                            if (dependencySelected)
-                            {
-                                GUI.enabled = false;
-                                GUI.color = new Color(0.6f, 1.0f, 0.6f);
-                            }
-                            string statusMessage = "";
-                            if (installed)
-                            {
-                                GUI.color = new Color(1.0f, 0.9f, 0.5f);
-                                //if we are selecting for uninstall and one of the selected packages depends on this one
-                                //highlight it in red?
-                                statusMessage = "installed";
-                                if (!selectingForInstall)
+                                if (localPackages[i].rootFolderIndex == p)
                                 {
-                                    foreach (var item in selectedPackages)
+                                    packagesInFolder++;
+                                    bool installed = false;
+                                    if (installedPackages != null)
                                     {
-                                        if (localPackages[i].dependencies != null && localPackages[i].dependencies.ContainsKey(item.name))
+                                        installed = installedPackages.Contains(localPackages[i].name);
+                                    }
+                                    bool selected = selectedPackages.Contains(localPackages[i]);
+                                    bool dependencySelected = selectedDependencyPackages.Contains(localPackages[i]);
+                                    if (selectedPackages.Count > 0)
+                                    {
+                                        GUI.enabled = GUI.enabled && (installed != selectingForInstall);
+                                    }
+                                    Color prevColour = GUI.color;
+                                    if (dependencySelected)
+                                    {
+                                        GUI.enabled = false;
+                                        GUI.color = new Color(0.6f, 1.0f, 0.6f);
+                                    }
+                                    string statusMessage = "";
+                                    if (installed)
+                                    {
+                                        GUI.color = new Color(1.0f, 0.9f, 0.5f);
+                                        //if we are selecting for uninstall and one of the selected packages depends on this one
+                                        //highlight it in red?
+                                        statusMessage = "installed";
+                                        if (!selectingForInstall)
                                         {
-                                            statusMessage += ", dependends on " + item.displayName;
-                                            GUI.color = new Color(1.0f, 0.6f, 0.6f);
+                                            foreach (var item in selectedPackages)
+                                            {
+                                                if (localPackages[i].dependencies != null && localPackages[i].dependencies.ContainsKey(item.name))
+                                                {
+                                                    statusMessage += ", dependends on " + item.displayName;
+                                                    GUI.color = new Color(1.0f, 0.6f, 0.6f);
+                                                }
+                                            }
                                         }
+                                    }
+                                    string displayName = localPackages[i].displayName;
+                                    if (!string.IsNullOrEmpty(statusMessage))
+                                    {
+                                        displayName += " (" + statusMessage + ")";
+                                    }
+                                    bool check = GUILayout.Toggle(selected || dependencySelected, displayName);
+                                    GUI.enabled = prevEnabled;
+                                    GUI.color = prevColour;
+                                    if (selected && !check)
+                                    {
+                                        selectedPackages.Remove(localPackages[i]);
+                                        if (installDependencies && selectingForInstall)
+                                        {
+                                            RefreshSelectedDependencies();
+                                        }
+                                    }
+                                    else if (!selected && check && !dependencySelected)
+                                    {
+                                        if (selectedPackages.Count == 0)
+                                        {
+                                            selectingForInstall = !installed;
+                                        }
+                                        selectedPackages.Add(localPackages[i]);
+                                        if (installDependencies && selectingForInstall)
+                                        {
+                                            RefreshSelectedDependencies();
+                                        }
+
                                     }
                                 }
                             }
-                            string displayName = localPackages[i].displayName;
-                            if (!string.IsNullOrEmpty(statusMessage))
+                            if (packagesInFolder == 0)
                             {
-                                displayName += " (" + statusMessage + ")";
+                                GUILayout.Label("[no packages in folder]");
                             }
-                            bool check = GUILayout.Toggle(selected || dependencySelected, displayName);
-                            GUI.enabled = prevEnabled;
-                            GUI.color = prevColour;
-                            if (selected && !check)
-                            {
-                                selectedPackages.Remove(localPackages[i]);
-                                if (installDependencies && selectingForInstall)
-                                {
-                                    RefreshSelectedDependencies();
-                                }
-                            }
-                            else if (!selected && check && !dependencySelected)
-                            {
-                                if (selectedPackages.Count == 0)
-                                {
-                                    selectingForInstall = !installed;
-                                }
-                                selectedPackages.Add(localPackages[i]);
-                                if (installDependencies && selectingForInstall)
-                                {
-                                    RefreshSelectedDependencies();
-                                }
-
-                            }
+                        }
+                        else
+                        {
+                            GUILayout.Label("[Folder does not exist]");
                         }
                     }
                 }
             }
+
             if (installedPackages == null || installedPackages.Count == 0)
             {
                 if (ListRequest != null)
@@ -320,6 +320,7 @@ public class LocalPackageHelper : EditorWindow
                 {
                     if (ListRequest == null)
                     {
+                        localPackages = GetPackageInfoForLocalPackageFolders();
                         ListRequest = Client.List(true);
                         EditorApplication.update += PollInstalledPackagesProgress;
                     }
@@ -386,23 +387,6 @@ public class LocalPackageHelper : EditorWindow
                     localPackageFolder = localPackageRootFolders[0];
                 }
                 CreateLocalPackagePopup.Init(localPackageFolder);
-            }
-
-            if (localPackages == null || localPackages.Count == 0)
-            {
-                if (GUILayout.Button("Poll local packages"))
-                {
-                    localPackages = GetPackageInfoForLocalPackageFolders();
-                    if (ListRequest == null)
-                    {
-                        ListRequest = Client.List(true);
-                        EditorApplication.update += PollInstalledPackagesProgress;
-                    }
-                    else
-                    {
-                        Debug.Log("polling already in progress");
-                    }
-                }
             }
         }
         EditorGUILayout.EndScrollView();
@@ -512,33 +496,53 @@ public class LocalPackageHelper : EditorWindow
             var currentDirectory = Directory.GetCurrentDirectory();
             try
             {
-                Directory.SetCurrentDirectory("/" + localPackagesDirectory);
-                var folders = Directory.GetDirectories(Directory.GetCurrentDirectory());
-                foreach (var folder in folders)
+                localPackagesDirectory = "/" + localPackagesDirectory;
+                if (Directory.Exists(localPackagesDirectory))
                 {
-                    logEntry = string.Join("\n", logEntry, folder);
-                    //should have a package.json package manifest file
-                    string packageJsonPath = folder + "/package.json";
-                    if (File.Exists(packageJsonPath))
+                    Directory.SetCurrentDirectory(localPackagesDirectory);
+                    var folders = Directory.GetDirectories(Directory.GetCurrentDirectory());
+                    foreach (var folder in folders)
                     {
-                        string json = File.ReadAllText(packageJsonPath);
-                        var parsedInfo = JsonUtility.FromJson<PackageInfo>(json);
-                        if (string.IsNullOrEmpty(parsedInfo.displayName))
+                        logEntry = string.Join("\n", logEntry, folder);
+                        // should have a package.json file
+                        string packageJsonPath = folder + "/package.json";
+                        if (File.Exists(packageJsonPath))
                         {
-                            parsedInfo.displayName = parsedInfo.name;
+                            string json = File.ReadAllText(packageJsonPath);
+                            var parsedInfo = JsonUtility.FromJson<PackageInfo>(json);
+                            if (parsedInfo == null)
+                            {
+                                Debug.Log("could not parse package.json in " + folder);
+                                // an empty package.json folder, for example, could cause parsing to fail
+                                // in this case, a package folder is skipped and does not appear in the list
+                            }
+                            else
+                            {
+                                if (string.IsNullOrEmpty(parsedInfo.displayName))
+                                {
+                                    parsedInfo.displayName = parsedInfo.name;
+                                }
+                                // JsonUtility cannot read the dependencies because they are a dictionary
+                                // so we extract them separately
+                                parsedInfo.dependencies = ParsePackageDependencies(json);
+                                // keep folder path in this info
+                                parsedInfo.folder = folder;
+                                parsedInfo.rootFolderIndex = folderIndex;
+                                localPackages.Add(parsedInfo);
+                            }
                         }
-                        // JsonUtility cannot read the dependencies because they are a dictionary
-                        // so we extract them separately
-                        parsedInfo.dependencies = ParsePackageDependencies(json);
-                        //keep folder path in this info
-                        parsedInfo.folder = folder;
-                        parsedInfo.rootFolderIndex = folderIndex;
-                        localPackages.Add(parsedInfo);
+                        else
+                        {
+                            //logEntry = string.Join("\n", logEntry, "not a package folder");
+                            // sub-folders that do not contain a package.json file will not appear in the package list
+                            // if there are no package sub-folders, a "no packages in folder" message will be shown for that directory
+                        }
                     }
-                    else
-                    {
-                        //logEntry = string.Join("\n", logEntry, "not a package folder");
-                    }
+                }
+                else
+                {
+                    // folder does not exist, but will remain as an empty foldout
+                    // a folder does not exist label will be added in the package list
                 }
             }
             finally
