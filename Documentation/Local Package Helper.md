@@ -33,6 +33,6 @@ Select installed packages to remove them. The "install selected packages" button
 
 ## Creating Local Packages
 
-Press the "Create local package" to create a new local package. Pressing the button opens a window with configuration options and "Create Package" and "Cancel" buttons.
+Press the "Create local package" button to create a new local package. Pressing the button opens a window with configuration options and "Create Package" and "Cancel" buttons.
 
 ![](images/CreateNewLocalPackage.png)
