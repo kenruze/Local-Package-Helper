@@ -124,9 +124,7 @@ public class LocalPackageHelper : EditorWindow
                 if (GUILayout.Button(options[i], EditorStyles.toolbarButton))
                 {
                     Debug.Log("chose " + options[i]);
-                    // the leading slash is necessary for mac paths.
-                    // TODO: check if adding the slash interferes with function on other platforms
-                    string path = "/" + options[i];
+                    string path = options[i];
                     EditorUtility.RevealInFinder(path);
                     editorWindow.Close();
                 }
@@ -389,7 +387,17 @@ public class LocalPackageHelper : EditorWindow
                 {
                     localPackageFolder = localPackageRootFolders[0];
                 }
-                CreateLocalPackagePopup.Init(localPackageFolder, localPackageRootFolders.ToArray());
+                var addDependencySuggestions = new List<CreateLocalPackagePopup.LocalDependencySuggestion>();
+                for (int i = 0; i < localPackages.Count; i++)
+                {
+                    addDependencySuggestions.Add(new CreateLocalPackagePopup.LocalDependencySuggestion()
+                    {
+                        packageName = localPackages[i].name,
+                        version = localPackages[i].version,
+                        localPackageRootFolderIndex = localPackages[i].rootFolderIndex,
+                    });
+                }
+                CreateLocalPackagePopup.Init(localPackageFolder, localPackageRootFolders.ToArray(), addDependencySuggestions.ToArray());
             }
         }
         EditorGUILayout.EndScrollView();

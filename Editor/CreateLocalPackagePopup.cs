@@ -6,22 +6,49 @@ using UnityEditor;
 
 public class CreateLocalPackagePopup : EditorWindow
 {
-    public static void Init(string destination, string[] localPackageRootFolders = null, string packageName = "New Package", string developerName = "developer")
+    public static void Init(string destination, string[] localPackageRootFolders = null, LocalDependencySuggestion[] dependencyOptions = null, string packageName = "New Package", string developerName = "developer")
     {
         //var window = GetWindow<CreateLocalPackagePopup>();
         var window = ScriptableObject.CreateInstance<CreateLocalPackagePopup>();
         window.titleContent = new GUIContent("Create New Local Package");
         window.position = new Rect(Screen.width / 2, Screen.height / 2, 450, 342);
         window.localPackageFolderDestination = destination;
-        window.localPackageRootFolders = localPackageRootFolders;
-        window.localPackageRootFolderLabels = new string[localPackageRootFolders.Length];
-        for (int i = 0; i < localPackageRootFolders.Length; i++)
+        if (localPackageRootFolders != null)
         {
-            window.localPackageRootFolderLabels[i] = localPackageRootFolders[i].Replace('/', '>');
+            window.localPackageRootFolders = localPackageRootFolders;
+            window.localPackageRootFolderLabels = new string[localPackageRootFolders.Length];
+            for (int i = 0; i < localPackageRootFolders.Length; i++)
+            {
+                window.localPackageRootFolderLabels[i] = localPackageRootFolders[i].Replace('/', '>');
+            }
+        }
+        if (dependencyOptions != null)
+        {
+            window.dependencyOptions = dependencyOptions;
+            window.dependencyOptionLabels = new string[dependencyOptions.Length];
+            for (int i = 0; i < dependencyOptions.Length; i++)
+            {
+                window.dependencyOptionLabels[i] = window.localPackageRootFolderLabels[dependencyOptions[i].localPackageRootFolderIndex] +
+                    "/" + dependencyOptions[i].packageName;
+            }
         }
         window.packageComName = "com." + developerName + "." + packageName.Replace(" ", "").ToLower();
         window.SetNames(packageName);
         window.ShowUtility();
+    }
+
+    public struct LocalDependencySuggestion
+    {
+        public int localPackageRootFolderIndex;
+        public string packageName;
+        public string version;
+    }
+
+    [System.Serializable]
+    public class dependencyAndVersion
+    {
+        public string packageName;
+        public string version = "1.0.0";
     }
 
     void SetNames(string folderName)
@@ -39,20 +66,26 @@ public class CreateLocalPackagePopup : EditorWindow
         packageDisplayName = folderName;
         packageAssemblyName = folderName.Replace(" ", "");
     }
+
+    Vector2 scrollPosition;
+
     string[] localPackageRootFolders;
     string[] localPackageRootFolderLabels;
+    LocalDependencySuggestion[] dependencyOptions;
+    string[] dependencyOptionLabels;
     bool createNewFolder;
     string[] versionDropdownOptions = new string[] { "1.0.0", "0.0.1" };
 
     public string localPackageFolderDestination;
     public string folderName;
     public string packageComName;
-    public string packageVersion = "1.0.0";
     public string packageDisplayName;
     [Tooltip("this is allowed to be uppercase, but without spaces")]
     public string packageAssemblyName;
+    public string packageVersion = "1.0.0";
     public string packageDescription;
     public string minimumUnityVersion = "2017.2";
+    public List<dependencyAndVersion> packageDependencies = new List<dependencyAndVersion>();
     public bool authorSection = true;
     public string authorName;
     public string authorEmail;
@@ -63,6 +96,9 @@ public class CreateLocalPackagePopup : EditorWindow
     void OnGUI()
     {
         SerializedObject serializedObject = new SerializedObject(this);
+
+        scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
+
         EditorGUILayout.BeginHorizontal();
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(localPackageFolderDestination)), true);
@@ -72,13 +108,12 @@ public class CreateLocalPackagePopup : EditorWindow
         {
             // Debug.Log("chose " + localPackageRootFolders[chosenFolderDropdownIndex]);
             serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue = localPackageRootFolders[chosenFolderDropdownIndex];
-            chosenFolderDropdownIndex = -1;
         }
         if (EditorGUI.EndChangeCheck())
         {
             // Debug.Log("edited directory field");
-            // if folder does not exist, set showCreateFolderWarning
-            var directory = "/" + serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue;
+            // if folder does not exist, set createNewFolder
+            var directory = serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue;
             createNewFolder = !Directory.Exists(directory);
         }
         EditorGUILayout.EndHorizontal();
@@ -102,10 +137,56 @@ public class CreateLocalPackagePopup : EditorWindow
         {
             // Debug.Log("chose " + localPackageRootFolders[chosenVersionDropdownIndex]);
             serializedObject.FindProperty(nameof(packageVersion)).stringValue = versionDropdownOptions[chosenVersionDropdownIndex];
-            chosenVersionDropdownIndex = -1;
         }
         EditorGUILayout.EndHorizontal();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(minimumUnityVersion)), true);
+
+        // dependencies
+        var dependenciesProperty = serializedObject.FindProperty(nameof(packageDependencies));
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.PrefixLabel("Dependencies");
+        if (GUILayout.Button("Add Dependency"))
+        {
+            // add empty fields
+            dependenciesProperty.InsertArrayElementAtIndex(dependenciesProperty.arraySize);
+            var addedArrayElementProperty = dependenciesProperty.GetArrayElementAtIndex(dependenciesProperty.arraySize - 1);
+            var versionProperty = addedArrayElementProperty.FindPropertyRelative(nameof(dependencyAndVersion.version));
+            versionProperty.stringValue = "1.0.0";
+        }
+        // add dependency dropdown with selection from provided suggestions
+        int chosenDependencyDropdownIndex = -1;
+        chosenDependencyDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenDependencyDropdownIndex, dependencyOptionLabels, GUILayout.Width(20));
+        if (chosenDependencyDropdownIndex != -1)
+        {
+            // Debug.Log("chose " + dependencyOptionLabels[chosenDependencyDropdownIndex]);
+            // add selected dependency
+            dependenciesProperty.InsertArrayElementAtIndex(dependenciesProperty.arraySize);
+            var addedArrayElementProperty = dependenciesProperty.GetArrayElementAtIndex(dependenciesProperty.arraySize - 1);
+            var versionProperty = addedArrayElementProperty.FindPropertyRelative(nameof(dependencyAndVersion.version));
+            versionProperty.stringValue = dependencyOptions[chosenDependencyDropdownIndex].version;
+            var dependencyNameProperty = addedArrayElementProperty.FindPropertyRelative(nameof(dependencyAndVersion.packageName));
+            dependencyNameProperty.stringValue = dependencyOptions[chosenDependencyDropdownIndex].packageName;
+        }
+        EditorGUILayout.EndHorizontal();
+        var indent = EditorGUI.indentLevel;
+        EditorGUI.indentLevel++;
+        // list of name and version fields, with remove button
+        for (int i = 0; i < dependenciesProperty.arraySize; i++)
+        {
+            var dependencyNameProperty = dependenciesProperty.GetArrayElementAtIndex(i).FindPropertyRelative(nameof(dependencyAndVersion.packageName));
+            var versionProperty = dependenciesProperty.GetArrayElementAtIndex(i).FindPropertyRelative(nameof(dependencyAndVersion.version));
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PropertyField(dependencyNameProperty);
+            EditorGUILayout.PropertyField(versionProperty, new GUIContent(""), GUILayout.Width(100));
+            if (GUILayout.Button("X", GUILayout.Width(20)))
+            {
+                dependenciesProperty.DeleteArrayElementAtIndex(i);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+        EditorGUI.indentLevel = indent;
+        // EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(packageDependencies)), true);
+
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(authorSection)), true);
         if (authorSection)
         {
@@ -126,7 +207,7 @@ public class CreateLocalPackagePopup : EditorWindow
         if (createNewFolder)
         {
             var warningLabel = new GUIContent("must be a local package helper root dierectory",
-                "Can only install packages created in directories known to the local package helper.\n" + 
+                "Can only install packages created in directories known to the local package helper.\n" +
                 "Add this directory to the local package root folders in order to install the created package.");
             EditorGUILayout.LabelField(warningLabel);
         }
@@ -139,9 +220,9 @@ public class CreateLocalPackagePopup : EditorWindow
             {
                 if (createNewFolder)
                 {
-                    Directory.CreateDirectory("/" + localPackageFolderDestination);
+                    Directory.CreateDirectory(localPackageFolderDestination);
                 }
-                Directory.SetCurrentDirectory("/" + localPackageFolderDestination);
+                Directory.SetCurrentDirectory(localPackageFolderDestination);
                 Directory.CreateDirectory(folderName);
 
                 //Write package.json file
@@ -152,12 +233,23 @@ public class CreateLocalPackagePopup : EditorWindow
         ""url"": """ + authorUrl + @"""
     }
 ";
+                string dependencies = "";
+                //com.moletotem.emptypackage":"1.0.0"},
+                for (int i = 0; i < packageDependencies.Count; i++)
+                {
+                    dependencies += "\"" + packageDependencies[i].packageName + "\":\"" + packageDependencies[i].version + "\"";
+                    if (i < packageDependencies.Count - 1)
+                    {
+                        dependencies += ",";
+                    }
+                }
                 string packageJson =
 @"{
     ""name"": """ + packageComName + @""",
     ""version"": """ + packageVersion + @""",
     ""displayName"": """ + packageDisplayName + @""",
     ""description"": """ + packageDescription + @""",
+    ""dependencies"": {" + dependencies + @"},
     ""unity"": """ + minimumUnityVersion + @"""" + (authorSection ? "," : "") + @"
 " + (authorSection ? authorSectionText : "") + @"}";
 
@@ -229,5 +321,6 @@ public class CreateLocalPackagePopup : EditorWindow
         {
             serializedObject.ApplyModifiedProperties();
         }
+        EditorGUILayout.EndScrollView();
     }
 }
