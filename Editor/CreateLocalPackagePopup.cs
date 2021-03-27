@@ -41,6 +41,7 @@ public class CreateLocalPackagePopup : EditorWindow
     }
     string[] localPackageRootFolders;
     string[] localPackageRootFolderLabels;
+    bool createNewFolder;
     string[] versionDropdownOptions = new string[] { "1.0.0", "0.0.1" };
 
     public string localPackageFolderDestination;
@@ -63,6 +64,7 @@ public class CreateLocalPackagePopup : EditorWindow
     {
         SerializedObject serializedObject = new SerializedObject(this);
         EditorGUILayout.BeginHorizontal();
+        EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(localPackageFolderDestination)), true);
         int chosenFolderDropdownIndex = -1;
         chosenFolderDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenFolderDropdownIndex, localPackageRootFolderLabels, GUILayout.Width(20));
@@ -71,6 +73,13 @@ public class CreateLocalPackagePopup : EditorWindow
             // Debug.Log("chose " + localPackageRootFolders[chosenFolderDropdownIndex]);
             serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue = localPackageRootFolders[chosenFolderDropdownIndex];
             chosenFolderDropdownIndex = -1;
+        }
+        if (EditorGUI.EndChangeCheck())
+        {
+            // Debug.Log("edited directory field");
+            // if folder does not exist, set showCreateFolderWarning
+            var directory = "/" + serializedObject.FindProperty(nameof(localPackageFolderDestination)).stringValue;
+            createNewFolder = !Directory.Exists(directory);
         }
         EditorGUILayout.EndHorizontal();
         GUILayout.BeginHorizontal();
@@ -105,13 +114,33 @@ public class CreateLocalPackagePopup : EditorWindow
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(authorUrl)), true);
         }
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(editorAssemblyFolder)), true);
+
+        EditorGUILayout.BeginHorizontal();
+        var guiEnabled = GUI.enabled;
+        // choosing a folder that does not exist is not the same as a folder that is not in the local package root folders
+        // but covers the likely case for this for now
+        bool canInstallFromDestinationFolder = !createNewFolder;
+        GUI.enabled &= canInstallFromDestinationFolder; // if canInstallFromFolder is false, GUI.enabled will become false
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(installPackageAfterCreated)), true);
+        GUI.enabled = guiEnabled;
+        if (createNewFolder)
+        {
+            var warningLabel = new GUIContent("must be a local package helper root dierectory",
+                "Can only install packages created in directories known to the local package helper.\n" + 
+                "Add this directory to the local package root folders in order to install the created package.");
+            EditorGUILayout.LabelField(warningLabel);
+        }
+        EditorGUILayout.EndHorizontal();
 
         if (GUILayout.Button("Create Package"))
         {
             var currentDirectory = Directory.GetCurrentDirectory();
             try
             {
+                if (createNewFolder)
+                {
+                    Directory.CreateDirectory("/" + localPackageFolderDestination);
+                }
                 Directory.SetCurrentDirectory("/" + localPackageFolderDestination);
                 Directory.CreateDirectory(folderName);
 
@@ -182,7 +211,7 @@ public class CreateLocalPackagePopup : EditorWindow
             }
             Debug.Log("Saved package \"" + folderName + "\" to " + localPackageFolderDestination + "/" + folderName + "\n" +
             "Refresh package list in Local Package Helper window to install");
-            if (installPackageAfterCreated)
+            if (installPackageAfterCreated && canInstallFromDestinationFolder)
             {
                 LocalPackageHelper.CreatedNewPackage(new string[] { packageComName });
             }
