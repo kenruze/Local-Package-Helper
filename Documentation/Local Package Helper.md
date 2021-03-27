@@ -1,9 +1,6 @@
 # Local-Package-Helper
 A Unity tool window to show and install available local packages and for creating new local packages.
 
-### Developer ReadMe
-___
-
 ## Installation
 
 ##### Unity 2019.3 or later:
@@ -20,20 +17,22 @@ Edit _manifest.json_ in the "Packages" folder of your Unity project. Add an entr
 
 Open the Local Package Helper tool window under the Window menu in Unity
 
-Either use the window to add the directory for local package folders, or add a directory to _localPackageFolders.txt_ in this package folder and re-open the Local Package Helper window
+![](images/LocalPackageHelper.png)
 
-The window shows available local packages and indicates if they are installed. 
+Add at least one directory for local packages to be found and created in.
+
+Use the _Save folders_ button to write the list of folders to a config file or save modifications to the list.
+
+Use the _Refresh_ button after making changes to the list, or after making changes to local package folders externally.
+
+The window shows local packages found in the specified root folders, and indicates if they are installed. 
 
 Select packages and press the "install selected packages" button to install them. Available local packages listed in the dependencies will also be selected by default.
 
 Select installed packages to remove them. The "install selected packages" button is replaced by a red, "Uninstall selected packages" button.
 
-Press the "Create local package" to create a new local package. Pressing the button opens a window with configuration options and "Create Package" and "Cancel" buttons.
-___
+## Creating Local Packages
 
-## Planned Features:
-* Select folder button for targeting local package root folders.
-* Find and list packages in folders further nested for categorization (currently package folders are searched for only directly under root folders).
-* Package details popup, with options to add runtime/editor/documentation folders, a developer readme, and open package folder.
-* Create package with embedded package destination.
-* Support installing from a local list of Github-hosted packages.
+Press the "Create local package" to create a new local package. Pressing the button opens a window with configuration options and "Create Package" and "Cancel" buttons.
+
+![](images/CreateNewLocalPackage.png)
