@@ -37,7 +37,6 @@ Press the "Create local package" button to create a new local package. Pressing 
 ___
 
 ## Planned Features:
-* Select folder button for targeting local package root folders.
 * Find and list packages in folders further nested for categorization (currently package folders are searched for only directly under root folders).
 * Package details popup, with options to add runtime/editor/documentation folders, a developer readme, and open package folder.
 * Create package with embedded package destination.
