@@ -22,7 +22,7 @@ Open the Local Package Helper tool window under the Window menu in Unity
 
 ![](Documentation/images/LocalPackageHelper.png)
 
-Either use the window to add the directory for local package folders, or add a directory to _localPackageFolders.txt_ in this package folder and re-open the Local Package Helper window
+Either use the window to add directories for local package folders, or add directories to _localPackageFolders.txt_ in this package folder.
 
 The window shows available local packages and indicates if they are installed. 
 

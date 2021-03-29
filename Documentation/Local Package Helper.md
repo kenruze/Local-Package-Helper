@@ -21,9 +21,7 @@ Open the Local Package Helper tool window under the Window menu in Unity
 
 Add at least one directory for local packages to be found and created in.
 
-Use the _Save folders_ button to write the list of folders to a config file or save modifications to the list.
-
-Use the _Refresh_ button after making changes to the list, or after making changes to local package folders externally.
+Use the _Refresh_ button after making changes to the list, or local package folders externally.
 
 The window shows local packages found in the specified root folders, and indicates if they are installed. 
 
