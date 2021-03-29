@@ -81,7 +81,7 @@ public class LocalPackageHelper : EditorWindow
     static List<string> installedPackages = new List<string>();
 
     //UI
-    bool[] localPackagesFoldouts = new bool[0];
+    List<bool> localPackagesFoldouts = new List<bool>();
     List<PackageInfo> selectedPackages = new List<PackageInfo>();
     List<PackageInfo> selectedDependencyPackages = new List<PackageInfo>();
     bool installDependencies = true;
@@ -140,6 +140,45 @@ public class LocalPackageHelper : EditorWindow
         PopupWindow.Show(position, popupContents);
     }
 
+    void SaveLocalPackagesFile(SerializedObject localPackagesHelperSerializedObject)
+    {
+        // save folders
+        localPackagesHelperSerializedObject.ApplyModifiedProperties();
+        // get local package folders from text file
+        var assetPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("localPackageFolders").FirstOrDefault());
+        if (File.Exists(assetPath))
+        {
+            // Debug.Log(assetPath);
+            File.WriteAllLines(assetPath, localPackageRootFolders);
+        }
+        else
+        {
+            Debug.Log("no file \"localPackageFolders\" found; could not save local package folders");
+            //just save the file somewhere
+        }
+        UpdateFoldouts();
+    }
+
+    void UpdateFoldouts()
+    {
+        if (localPackagesFoldouts.Count != localPackageRootFolders.Count)
+        {
+            int c = 0;
+            for (; c < localPackageRootFolders.Count; c++)
+            {
+                if (localPackagesFoldouts.Count <= c)
+                {
+                    localPackagesFoldouts.Add(true);
+                }
+            }
+            for (; c < localPackagesFoldouts.Count; c++)
+            {
+                localPackagesFoldouts.RemoveAt(c);
+                --c;
+            }
+        }
+    }
+
     void OnGUI()
     {
         SerializedObject serializedObject = new SerializedObject(this);
@@ -147,64 +186,39 @@ public class LocalPackageHelper : EditorWindow
 
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
-        EditorGUILayout.PropertyField(localPackageRootFoldersProp, true);
-        if (localPackageRootFoldersProp.isExpanded)
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Add a Local Package Root Folder"))
         {
-            if (serializedObject.hasModifiedProperties)
+            string folderName = EditorUtility.OpenFolderPanel("Select Local Package Folder", "", "");
+            if (string.IsNullOrEmpty(folderName))
             {
-                foldersModified = true;
+                // cancelled selecting new root folder
             }
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Refresh"))
+            else
             {
-                localPackages = GetPackageInfoForLocalPackageFolders();
-                if (ListRequest == null)
-                {
-                    ListRequest = Client.List(true);
-                    EditorApplication.update += PollInstalledPackagesProgress;
-                }
-                else
-                {
-                    Debug.Log("polling already in progress");
-                }
+                Debug.Log("selected folder: " + folderName);
+                // add new folder
+                localPackageRootFoldersProp.InsertArrayElementAtIndex(localPackageRootFoldersProp.arraySize);
+                localPackageRootFoldersProp.GetArrayElementAtIndex(localPackageRootFoldersProp.arraySize - 1).stringValue = folderName;
+                SaveLocalPackagesFile(serializedObject);
             }
-            bool prevEnabled = GUI.enabled;
-            GUI.enabled = prevEnabled && foldersModified;
-            {
-                if (GUILayout.Button("Save folders"))
-                {
-                    //get local package folders from text file
-                    var assetPath = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("localPackageFolders").FirstOrDefault());
-                    if (File.Exists(assetPath))
-                    {
-                        Debug.Log(assetPath);
-                        File.WriteAllLines(assetPath, localPackageRootFolders);
-                        foldersModified = false;
-                    }
-                    else
-                    {
-                        Debug.Log("no file \"localPackageFolders\" found");
-                        //just save the file somewhere
-                    }
-                }
-            }
-            GUI.enabled = prevEnabled;
-            GUILayout.EndHorizontal();
         }
+        if (GUILayout.Button("Refresh", GUILayout.Width(60)))
+        {
+            localPackages = GetPackageInfoForLocalPackageFolders();
+            if (ListRequest == null)
+            {
+                ListRequest = Client.List(true);
+                EditorApplication.update += PollInstalledPackagesProgress;
+            }
+            else
+            {
+                Debug.Log("polling already in progress");
+            }
+        }
+        GUILayout.EndHorizontal();
 
-        if (localPackagesFoldouts.Length != localPackageRootFolders.Count)
-        {
-            var oldFoldoutStates = localPackagesFoldouts;
-            localPackagesFoldouts = new bool[localPackageRootFolders.Count];
-            for (int i = 0; i < oldFoldoutStates.Length; i++)
-            {
-                if (i >= localPackageRootFolders.Count)
-                {
-                    break;
-                }
-                localPackagesFoldouts[i] = oldFoldoutStates[i];
-            }
-        }
+        UpdateFoldouts();
 
         {
             bool prevEnabled = GUI.enabled;
@@ -214,9 +228,31 @@ public class LocalPackageHelper : EditorWindow
             }
             if (localPackages != null && ListRequest == null)
             {
-                for (int p = 0; p < localPackagesFoldouts.Length; p++)
+                for (int p = 0; p < localPackagesFoldouts.Count; p++)
                 {
-                    if (localPackagesFoldouts[p] = EditorGUILayout.Foldout(localPackagesFoldouts[p], localPackageRootFolders[p], true))
+                    bool removedFolder = false;
+                    GUILayout.BeginHorizontal();
+                    localPackagesFoldouts[p] = EditorGUILayout.Foldout(localPackagesFoldouts[p], localPackageRootFolders[p], true);
+                    string[] rootFolderDropdownOptions = new string[] { "Open Folder", "Remove Folder" };
+                    int chosenRootFolderDropdownIndex = -1;
+                    chosenRootFolderDropdownIndex = EditorGUILayout.Popup(new GUIContent(""), chosenRootFolderDropdownIndex, rootFolderDropdownOptions, GUILayout.Width(20));
+                    if (chosenRootFolderDropdownIndex != -1)
+                    {
+                        // Debug.Log("chose " + rootFolderDropdownOptions[chosenRootFolderDropdownIndex]);
+                        if (chosenRootFolderDropdownIndex == 0) // open folder
+                        {
+                            EditorUtility.RevealInFinder(localPackageRootFolders[p]);
+                        }
+                        else if (chosenRootFolderDropdownIndex == 1) // remove folder
+                        {
+                            localPackageRootFoldersProp.DeleteArrayElementAtIndex(p);
+                            removedFolder = true;
+                            // save folders
+                            SaveLocalPackagesFile(serializedObject);
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                    if (!removedFolder && localPackagesFoldouts[p])
                     {
                         var localPackagesDirectory = localPackageRootFolders[p];
                         localPackagesDirectory = "/" + localPackagesDirectory;
