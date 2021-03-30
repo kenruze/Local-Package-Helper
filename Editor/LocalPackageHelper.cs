@@ -86,7 +86,6 @@ public class LocalPackageHelper : EditorWindow
     List<PackageInfo> selectedDependencyPackages = new List<PackageInfo>();
     bool installDependencies = true;
     bool selectingForInstall = true;
-    bool foldersModified = false;
     Vector2 scrollPosition;
 
     public class PackageInfo
